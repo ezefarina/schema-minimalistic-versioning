@@ -1,0 +1,51 @@
+buildscript {
+    dependencies {
+        classpath 'org.postgresql:postgresql:9.2-1004-jdbc41'
+    }
+}
+plugins {
+    id 'org.liquibase.gradle' version '1.2.1'
+}
+
+apply plugin: 'java'
+apply plugin: 'liquibase'
+
+Properties properties = new Properties()
+File propertiesFile = new File("src/main/resources/db.properties")
+println "Loading internal properties"
+propertiesFile.withInputStream {
+    properties.load(it)
+}
+
+String customLocation = System.properties['propertiesLocation']
+if (customLocation!=null) {
+    propertiesFile = new File(customLocation)
+    if (propertiesFile.exists()) {
+        println "Loading custom external properties"
+        propertiesFile.withInputStream {
+            properties.load(it)
+        }
+    } else {
+        println "Custom location defined but nonexistent. Using defaults"
+    }
+} else {
+    propertiesFile = new File(System.properties['user.home'] + "/db.properties")
+    if (propertiesFile.exists()) {
+        println "Loading home external properties"
+        propertiesFile.withInputStream {
+            properties.load(it)
+        }
+    }
+}
+
+liquibase {
+    activities {
+        main {
+            changeLogFile properties."liquibase-gradle-change-log"
+            url properties."datasource.url"
+            username properties."datasource.username"
+            password properties."datasource.password"
+            contexts properties."liquibase.contexts"
+        }
+    }
+}
